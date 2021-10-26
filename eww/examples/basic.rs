@@ -49,14 +49,26 @@ fn render(wgpu: &WgpuCtx, window: &Window, backend: &mut eww::Backend) {
         .device
         .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
 
-    let frame = match wgpu.swap_chain.get_current_frame() {
+    let frame = match wgpu.surface.get_current_frame() {
         Ok(frame) => frame,
         Err(e) => {
             eprintln!("wgpu error: {}", e);
             return;
         }
     };
-    let rt = &frame.output.view;
+    let rt = &frame
+        .output
+        .texture
+        .create_view(&wgpu::TextureViewDescriptor {
+            label: None,
+            format: None,
+            dimension: None,
+            aspect: wgpu::TextureAspect::All,
+            base_mip_level: 0,
+            mip_level_count: None,
+            base_array_layer: 0,
+            array_layer_count: None,
+        });
 
     backend.render(
         eww::RenderDescriptor {
@@ -85,12 +97,12 @@ fn build_gui(ctx: egui::CtxRef) {
 struct WgpuCtx {
     device: wgpu::Device,
     queue: wgpu::Queue,
-    swap_chain: wgpu::SwapChain,
+    surface: wgpu::Surface,
 }
 
 impl WgpuCtx {
     async fn init(window: &Window) -> Self {
-        let instance = wgpu::Instance::new(wgpu::BackendBit::PRIMARY);
+        let instance = wgpu::Instance::new(wgpu::Backends::PRIMARY);
         let surface = unsafe { instance.create_surface(window) };
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
@@ -114,20 +126,21 @@ impl WgpuCtx {
 
         let window_size = window.inner_size();
 
-        let sc_desc = wgpu::SwapChainDescriptor {
-            usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
-            format: wgpu::TextureFormat::Bgra8UnormSrgb,
-            width: window_size.width,
-            height: window_size.height,
-            present_mode: wgpu::PresentMode::Fifo,
-        };
-
-        let swap_chain = device.create_swap_chain(&surface, &sc_desc);
+        surface.configure(
+            &device,
+            &wgpu::SurfaceConfiguration {
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+                format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                width: window_size.width,
+                height: window_size.height,
+                present_mode: wgpu::PresentMode::Fifo,
+            },
+        );
 
         Self {
             device,
             queue,
-            swap_chain,
+            surface,
         }
     }
 }
