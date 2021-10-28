@@ -1,4 +1,4 @@
-# eww
+# NOT MAINTAINED: eww
 
 [![Crates.io](https://img.shields.io/crates/v/eww.svg)](https://crates.io/crates/eww)
 [![Docs.rs](https://docs.rs/eww/badge.svg)](https://docs.rs/eww)
